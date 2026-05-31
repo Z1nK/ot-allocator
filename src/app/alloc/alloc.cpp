@@ -7,6 +7,7 @@
 #include <vector>
 
 #include <allocators/log_alloc.hpp>
+#include <allocators/arena_alloc.hpp>
 
 int main() {
 
