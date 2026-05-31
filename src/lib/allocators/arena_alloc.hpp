@@ -14,15 +14,15 @@ class MemoryArena {
 
  public:
 
-  constexpr std::size_t capacity() const noexcept {
+  [[nodiscard]] constexpr std::size_t capacity() const noexcept {
     return N;
   }
 
-  constexpr std::size_t used() const noexcept {
+  [[nodiscard]] constexpr std::size_t used() const noexcept {
     return offset;
   }
 
-  constexpr std::size_t available() const noexcept {
+  [[nodiscard]] constexpr std::size_t available() const noexcept {
     return N - offset;
   }
 
@@ -37,4 +37,12 @@ class MemoryArena {
 
     return current_ptr;
   }
+
+  // TODO: implement deallocate, for now we can only reset the arena. 
+  //! could be problem if data types not simple.
+  void reset() noexcept { offset = 0; }
+
+  //TODO: implement comparations operators, for avoid compare backing storage
+  auto operator<=>(const MemoryArena&) const = default;
+
 };
