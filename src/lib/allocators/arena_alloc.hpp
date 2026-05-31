@@ -13,6 +13,19 @@ class MemoryArena {
   std::size_t offset = 0;
 
  public:
+
+  constexpr std::size_t capacity() const noexcept {
+    return N;
+  }
+
+  constexpr std::size_t used() const noexcept {
+    return offset;
+  }
+
+  constexpr std::size_t available() const noexcept {
+    return N - offset;
+  }
+
   std::byte* allocate(std::size_t bytes) {
     if (offset + bytes > N) {
       throw std::bad_alloc();
