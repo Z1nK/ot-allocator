@@ -49,6 +49,9 @@ template <typename T, std::size_t N>
 class ArenaAllocator {
   MemoryArena<N>* arena;
 
+  template <typename U, std::size_t M>
+  friend class ArenaAllocator;
+
  public:
   using value_type = T;
   using size_type = std::size_t;
@@ -60,9 +63,7 @@ class ArenaAllocator {
 
   template <typename U>
   ArenaAllocator(const ArenaAllocator<U, N>& other) noexcept
-      : arena(other.get_arena()) {}
-
-  MemoryArena<N>* get_arena() const noexcept { return arena; }
+      : arena(other.arena) {}
 
   [[nodiscard]] T* allocate(std::size_t n) {
     if (n == 0) return nullptr;
@@ -85,11 +86,11 @@ class ArenaAllocator {
 
   template <typename U>
   bool operator==(const ArenaAllocator<U, N>& other) const noexcept {
-    return arena == other.get_arena();
+    return arena == other.arena;
   }
 
   template <typename U>
   bool operator!=(const ArenaAllocator<U, N>& other) const noexcept {
-    return arena != other.get_arena();
+    return arena != other.arena;
   }
 };
