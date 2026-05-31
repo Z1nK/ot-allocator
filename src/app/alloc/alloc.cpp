@@ -42,5 +42,30 @@ int main() {
   std::cout << "Used: " << arena.used() << " bytes\n";
   std::cout << "Available: " << arena.available() << " bytes\n";
 
+  // Test ArenaAllocator with std::map
+  std::cout << "\n=== Testing ArenaAllocator with std::map ===\n";
+  MemoryArena<4096> map_arena;
+  ArenaAllocator<std::pair<const int, int>, 4096> alloc(map_arena);
+  
+  std::map<int, int, std::less<int>, 
+           ArenaAllocator<std::pair<const int, int>, 4096>> map(
+      std::less<int>(), alloc);
+
+  std::cout << "Map arena capacity: " << map_arena.capacity() << " bytes\n";
+  std::cout << "Map arena used before insertion: " << map_arena.used() << " bytes\n";
+
+  map[1] = 100;
+  map[2] = 200;
+  map[3] = 300;
+  map[5] = 500;
+
+  std::cout << "Map arena used after insertion: " << map_arena.used() << " bytes\n";
+  std::cout << "Map arena available: " << map_arena.available() << " bytes\n";
+
+  std::cout << "\nMap contents:\n";
+  for (const auto& [key, value] : map) {
+    std::cout << "  [" << key << "] = " << value << "\n";
+  }
+
   return 0;
 }
