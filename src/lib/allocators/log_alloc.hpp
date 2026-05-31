@@ -21,4 +21,15 @@ struct LogAllocator {
     ::operator delete(p);
   }
 
+
 };
+
+template <typename T, typename U>
+constexpr bool operator==(const LogAllocator<T>&, const LogAllocator<U>&) noexcept {
+  return true;
+}
+
+template <typename T, typename U>
+constexpr bool operator!=(const LogAllocator<T>&, const LogAllocator<U>&) noexcept {
+  return false;
+}
