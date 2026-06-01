@@ -54,8 +54,10 @@ class MemoryArena {
   //! could be problem if data types not simple.
   void reset() noexcept { offset = 0; }
 
-  // TODO: implement comparations operators, for avoid compare backing storage
-  auto operator<=>(const MemoryArena&) const = default;
+  // Arenas are identified by address; value-based comparison is intentionally
+  // disabled to prevent comparing uninitialized buffer bytes (UB).
+  bool operator==(const MemoryArena&) const = delete;
+  auto operator<=>(const MemoryArena&) const = delete;
 };
 
 // Allocator itself
