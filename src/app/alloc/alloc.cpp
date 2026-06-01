@@ -67,5 +67,26 @@ int main() {
     std::cout << "  [" << key << "] = " << value << "\n";
   }
 
+  // Test iterators and size with ArenaAllocator
+  std::cout << "\n=== Testing Iterators and Size ===\n";
+  MemoryArena<2048> vec_arena;
+  ArenaAllocator<int, 2048> vec_alloc(vec_arena);
+  std::vector<int, ArenaAllocator<int, 2048>> vec(vec_alloc);
+  
+  vec.push_back(10);
+  vec.push_back(20);
+  vec.push_back(30);
+
+  using Vec = std::vector<int, ArenaAllocator<int, 2048>>;
+  Vec::pointer ptr = vec.data();
+  Vec::size_type sz = vec.size();
+
+  std::cout << "Vector size: " << sz << "\n";
+  std::cout << "Vector data pointer: " << ptr << "\n";
+  std::cout << "Vector contents via iterator:\n";
+  for (auto it = vec.begin(); it != vec.end(); ++it) {
+    std::cout << "  *it = " << *it << "\n";
+  }
+
   return 0;
 }
