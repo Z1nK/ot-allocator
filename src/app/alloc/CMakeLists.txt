@@ -16,4 +16,4 @@ endif()
 
 # Installation
 
-install(TARGETS alloc RUNTIME DESTINATION bin)
+# install(TARGETS alloc RUNTIME DESTINATION bin)
