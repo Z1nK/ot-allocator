@@ -8,6 +8,8 @@ set_target_properties(unit_tests PROPERTIES
 target_link_libraries(unit_tests PRIVATE
 	GTest::gtest
 	GTest::gtest_main
+	allocators::arena-alloc
+	allocators::log-alloc
 	# log-reader::log-reader
 )
 
