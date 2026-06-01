@@ -18,4 +18,15 @@ target_include_directories(arena-alloc INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/..>
   )
 
+# ----------------------------------------------------------------------------
+
+add_library(heap-arena-alloc INTERFACE)
+
+add_library(allocators::heap-arena-alloc ALIAS heap-arena-alloc)
+
+target_include_directories(heap-arena-alloc INTERFACE
+  $<INSTALL_INTERFACE:include>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/..>
+  )
+
 
