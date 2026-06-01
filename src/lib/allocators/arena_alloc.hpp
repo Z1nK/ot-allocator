@@ -73,6 +73,14 @@ template <typename T, std::size_t N>
 class ArenaAllocator {
   MemoryArena<N>* arena;
 
+  // Intrusive free list: freed blocks of exactly sizeof(T) bytes store a
+  // next-pointer inside their own memory, so there is zero metadata overhead.
+  struct FreeNode {
+    FreeNode* next;
+  };
+
+  FreeNode* free_list_head = nullptr;
+
   template <typename U, std::size_t M>
   friend class ArenaAllocator;
 
@@ -93,13 +101,45 @@ class ArenaAllocator {
     if (n > (std::numeric_limits<std::size_t>::max() / sizeof(T))) {
       throw std::bad_alloc();
     }
+    // For single-element requests check the free list first.
+    // Alignment is already guaranteed: MemoryArena always aligns to
+    // alignof(std::max_align_t), which is >= alignof(FreeNode) on all
+    // platforms. (noo need for sizeof(T) % alignof(FreeNode). The only
+    // requirement is that the block is large enough to hold FreeNode::next.
+    if constexpr (sizeof(T) >= sizeof(FreeNode)) {
+      if (n == 1 && free_list_head != nullptr) {
+        FreeNode* node = free_list_head;
+        free_list_head = node->next;
+        std::destroy_at(
+            node);  // end FreeNode lifetime; storage is now available for T
+        return reinterpret_cast<T*>(node);
+      }
+    }
     return reinterpret_cast<T*>(arena->allocate(n * sizeof(T)));
   }
 
   void deallocate(T* p, std::size_t n) noexcept {
-    // Nothing to do, as the arena will be reset all at once after.
-    (void)p;
-    (void)n;
+    // Only single-element frees are pushed onto the free list: allocate() only
+    // reuses n==1 blocks, so pushing n>1 blocks would pay O(n) cost with no
+    // benefit. Multi-element frees are silently ignored; bulk reclaim via
+    // reset() remains. Alignment is guaranteed by the arena (see allocate).
+    // Size guard ensures the block has room for FreeNode::next. Placement new
+    // starts FreeNode's lifetime, making the pointer write well-defined.
+    if constexpr (sizeof(T) >= sizeof(FreeNode)) {
+      if (n == 1) {
+        FreeNode* node = ::new (static_cast<void*>(p)) FreeNode{free_list_head};
+        free_list_head = node;
+      }
+    }
+  }
+
+  // Must be called instead of arena.reset() directly: resets both the free list
+  // and the arena bump pointer atomically. Calling arena.reset() alone leaves
+  // free_list_head pointing into bytes that the bump allocator will reuse,
+  // causing two live allocations to share the same storage (silent corruption).
+  void reset() noexcept {
+    free_list_head = nullptr;
+    arena->reset();
   }
 
   template <typename U>
@@ -112,5 +152,5 @@ class ArenaAllocator {
     return arena == other.arena;
   }
 
-  // operator!= is synthesised from operator== (C++20). should be ... 
+  // operator!= is synthesised from operator== (C++20). should be ...
 };
