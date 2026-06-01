@@ -25,15 +25,21 @@ class MemoryArena {
   }
 
   std::byte* allocate(std::size_t bytes) {
-    if (offset + bytes > N) {
-      throw std::bad_alloc();
+    std::size_t space = N - offset;
+    void* ptr = buffer.data() + offset;
+
+    // std::align adjusts ptr to the next aligned address within space and
+    // reduces space by the padding consumed. size=1 is the minimum valid
+    // argument, so zero-byte requests use it to obtain a properly aligned
+    // sentinel pointer without advancing offset.
+    const std::size_t alloc_size = (bytes == 0) ? 1 : bytes;
+    if (std::align(alignof(std::max_align_t), alloc_size, ptr, space)) {
+      if (bytes > 0) {
+        offset = N - space + bytes;
+      }
+      return static_cast<std::byte*>(ptr);
     }
-
-    std::byte* current_ptr = buffer.data() + offset;
-
-    offset += bytes;
-
-    return current_ptr;
+    throw std::bad_alloc();
   }
 
   // TODO: implement deallocate, for now we can only reset the arena.
