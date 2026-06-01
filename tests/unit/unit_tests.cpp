@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "allocators/arena_alloc.hpp"
+#include "allocators/heap_arena_alloc.hpp"
 #include "allocators/log_alloc.hpp"
 
 namespace {
@@ -235,6 +236,56 @@ TEST(ArenaAllocatorTests, ResetClearsFreeListAndArena) {
 	std::uintptr_t* p2 = allocator.allocate(1);
 	std::uintptr_t* p3 = allocator.allocate(1);
 	EXPECT_NE(p2, p3);  // must be distinct; overlap would indicate stale free list
+}
+
+TEST(HeapArenaAllocatorTests, DeallocateAndReallocateReusesFreeListBlock) {
+	HeapMemoryArena arena(128);
+	HeapArenaAllocator<std::uintptr_t> allocator(arena);
+
+	std::uintptr_t* ptr = allocator.allocate(1);
+	ASSERT_NE(ptr, nullptr);
+	const std::size_t used_after_alloc = arena.used();
+
+	allocator.deallocate(ptr, 1);
+
+	std::uintptr_t* reused = allocator.allocate(1);
+	EXPECT_EQ(reused, ptr);                    // same block recycled from free list
+	EXPECT_EQ(arena.used(), used_after_alloc);  // arena bump not advanced
+}
+
+TEST(HeapArenaAllocatorTests, ResetClearsFreeListAndArena) {
+	HeapMemoryArena arena(128);
+	HeapArenaAllocator<std::uintptr_t> allocator(arena);
+
+	std::uintptr_t* p1 = allocator.allocate(1);
+	allocator.deallocate(p1, 1);  // p1 is now on the free list
+
+	allocator.reset();  // must clear both free list and arena offset
+
+	EXPECT_EQ(arena.used(), 0U);
+
+	std::uintptr_t* p2 = allocator.allocate(1);
+	std::uintptr_t* p3 = allocator.allocate(1);
+	EXPECT_NE(p2, p3);  // stale free list would alias these
+}
+
+TEST(HeapArenaAllocatorTests, WorksWithStdList) {
+	HeapMemoryArena arena(4096);
+	HeapArenaAllocator<int> allocator(arena);
+	std::list<int, HeapArenaAllocator<int>> lst(allocator);
+
+	lst.push_back(1);
+	lst.push_back(2);
+	lst.push_back(3);
+
+	auto it = std::next(lst.begin());
+	lst.erase(it);
+	const std::size_t used_after_erase = arena.used();
+
+	lst.push_back(4);
+
+	ASSERT_EQ(lst.size(), 3U);
+	EXPECT_EQ(arena.used(), used_after_erase);  // reused freed node
 }
 
 TEST(LogAllocatorTests, AllocateAndDeallocateRawStorage) {

@@ -38,6 +38,15 @@ class HeapMemoryArena {
     throw std::bad_alloc();
   }
 
+  // Best-effort LIFO reclaim: if the freed block is the most-recently-allocated
+  // one, retreat the offset so the space can be reused by the next allocate().
+  // Non-LIFO frees are silently ignored; bulk reclaim remains available via reset().
+  void deallocate(std::byte* p, std::size_t bytes) noexcept {
+    if (bytes > 0 && p + bytes == buffer.get() + offset) {
+      offset = static_cast<std::size_t>(p - buffer.get());
+    }
+  }
+
   void reset() noexcept { offset = 0; }
 
   bool operator==(const HeapMemoryArena&) const = delete;
@@ -47,6 +56,15 @@ class HeapMemoryArena {
 template <typename T>
 class HeapArenaAllocator {
   HeapMemoryArena* arena;
+
+  // Intrusive free list: freed blocks store a next-pointer inside their own
+  // memory (zero metadata overhead). Alignment is guaranteed by the arena which
+  // always aligns to alignof(std::max_align_t) >= alignof(FreeNode).
+  struct FreeNode {
+    FreeNode* next;
+  };
+
+  FreeNode* free_list_head = nullptr;
 
   template <typename U>
   friend class HeapArenaAllocator;
@@ -68,12 +86,34 @@ class HeapArenaAllocator {
     if (n > (std::numeric_limits<std::size_t>::max() / sizeof(T))) {
       throw std::bad_alloc();
     }
+    if constexpr (sizeof(T) >= sizeof(FreeNode)) {
+      if (n == 1 && free_list_head != nullptr) {
+        FreeNode* node = free_list_head;
+        free_list_head = node->next;
+        std::destroy_at(node);  // end FreeNode lifetime; storage available for T
+        return reinterpret_cast<T*>(node);
+      }
+    }
     return reinterpret_cast<T*>(arena->allocate(n * sizeof(T)));
   }
 
   void deallocate(T* p, std::size_t n) noexcept {
-    (void)p;
-    (void)n;
+    // Only n==1 pushed: allocate() only reuses single-element blocks.
+    // Placement new starts FreeNode lifetime for well-defined pointer write.
+    if constexpr (sizeof(T) >= sizeof(FreeNode)) {
+      if (n == 1) {
+        FreeNode* node = ::new (static_cast<void*>(p)) FreeNode{free_list_head};
+        free_list_head = node;
+      }
+    }
+  }
+
+  // Must be called instead of arena.reset() directly: resets both the free list
+  // and the arena bump pointer atomically to prevent stale free-list pointers
+  // aliasing freshly bump-allocated blocks (silent corruption).
+  void reset() noexcept {
+    free_list_head = nullptr;
+    arena->reset();
   }
 
   template <typename U>
