@@ -5,6 +5,7 @@ target_compile_features(alloc PUBLIC cxx_std_20)
 target_link_libraries(alloc PRIVATE
                         allocators::log-alloc
                         allocators::arena-alloc
+                        allocators::heap-arena-alloc
 )
 
 if (MSVC)

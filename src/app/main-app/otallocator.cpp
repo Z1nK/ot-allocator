@@ -8,6 +8,7 @@
 
 #include <allocators/log_alloc.hpp>
 #include <allocators/arena_alloc.hpp>
+#include <allocators/heap_arena_alloc.hpp>
 
 int factorial(int n) {
   if (n <= 1) return 1;
