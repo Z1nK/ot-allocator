@@ -87,6 +87,16 @@ TEST(MemoryArenaTests, AllocateThrowsWhenCapacityExceeded) {
 	EXPECT_EQ(arena.available(), 8U);
 }
 
+TEST(MemoryArenaTests, IsNeitherCopyableNorMovable) {
+	// The arena's identity IS its buffer address. Copying or moving would
+	// produce a new buffer at a different address, making every pointer
+	// previously returned by allocate() dangle.
+	static_assert(!std::is_copy_constructible_v<MemoryArena<64>>);
+	static_assert(!std::is_copy_assignable_v<MemoryArena<64>>);
+	static_assert(!std::is_move_constructible_v<MemoryArena<64>>);
+	static_assert(!std::is_move_assignable_v<MemoryArena<64>>);
+}
+
 TEST(MemoryArenaTests, ResetClearsUsedBytes) {
 	MemoryArena<32> arena;
 	(void)arena.allocate(12);

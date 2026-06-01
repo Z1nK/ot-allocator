@@ -16,6 +16,14 @@ class MemoryArena {
   std::size_t offset = 0;
 
  public:
+  MemoryArena() = default;
+  // Copying or moving MemoryArena would create a new buffer at a
+  // different address, leaving every pointer previously returned by
+  // allocate() dangling. Both operations are therefore deleted.
+  MemoryArena(const MemoryArena&) = delete;
+  MemoryArena& operator=(const MemoryArena&) = delete;
+  MemoryArena(MemoryArena&&) = delete;
+  MemoryArena& operator=(MemoryArena&&) = delete;
   [[nodiscard]] constexpr std::size_t capacity() const noexcept { return N; }
 
   [[nodiscard]] constexpr std::size_t used() const noexcept { return offset; }
