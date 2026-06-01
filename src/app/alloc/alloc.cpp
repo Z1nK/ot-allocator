@@ -1,7 +1,8 @@
 #include <array>
 #include <iostream>
-#include <array>
+#include <iterator>
 
+#include <list>
 #include <map>
 
 #include <vector>
@@ -87,6 +88,33 @@ int main() {
   for (auto it = vec.begin(); it != vec.end(); ++it) {
     std::cout << "  *it = " << *it << "\n";
   }
+
+  // Test ArenaAllocator with std::list (exercises free-list reuse)
+  std::cout << "\n=== Testing ArenaAllocator with std::list ===\n";
+  MemoryArena<4096> list_arena;
+  ArenaAllocator<int, 4096> list_alloc(list_arena);
+  std::list<int, ArenaAllocator<int, 4096>> lst(list_alloc);
+
+  lst.push_back(10);
+  lst.push_back(20);
+  lst.push_back(30);
+  std::cout << "After 3 push_back: arena used = " << list_arena.used() << " bytes\n";
+
+  auto mid = std::next(lst.begin());
+  lst.erase(mid);  // frees node '20' onto the free list
+  std::cout << "After erase(20):   arena used = " << list_arena.used()
+            << " bytes (unchanged; node on free list)\n";
+
+  const std::size_t used_before_reuse = list_arena.used();
+  lst.push_back(40);  // reuses the freed node
+  std::cout << "After push_back(40): arena used = " << list_arena.used()
+            << " bytes (" << (list_arena.used() == used_before_reuse ? "reused" : "new alloc") << ")\n";
+
+  std::cout << "List contents: ";
+  for (const auto& v : lst) {
+    std::cout << v << " ";
+  }
+  std::cout << "\n";
 
   return 0;
 }
