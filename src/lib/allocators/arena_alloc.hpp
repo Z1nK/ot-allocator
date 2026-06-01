@@ -104,8 +104,5 @@ class ArenaAllocator {
     return arena == other.arena;
   }
 
-  template <typename U>
-  bool operator!=(const ArenaAllocator<U, N>& other) const noexcept {
-    return arena != other.arena;
-  }
+  // operator!= is synthesised from operator== (C++20). should be ... 
 };
