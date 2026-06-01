@@ -4,6 +4,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <list>
+#include <iterator>
 #include <memory>
 #include <vector>
 
@@ -176,6 +178,63 @@ TEST(ArenaAllocatorTests, DeallocateIsNoOp) {
 	allocator.deallocate(ptr, 2);
 
 	EXPECT_EQ(arena.used(), used_before);
+}
+
+// std::uintptr_t is exactly sizeof(void*) bytes and satisfies the free-list
+// size guard (sizeof(T) % sizeof(void*) == 0) on all platforms.
+TEST(ArenaAllocatorTests, DeallocateAndReallocateReusesFreeListBlock) {
+	MemoryArena<128> arena;
+	ArenaAllocator<std::uintptr_t, 128> allocator(arena);
+
+	std::uintptr_t* ptr = allocator.allocate(1);
+	ASSERT_NE(ptr, nullptr);
+	const std::size_t used_after_alloc = arena.used();
+
+	allocator.deallocate(ptr, 1);
+
+	std::uintptr_t* reused = allocator.allocate(1);
+	EXPECT_EQ(reused, ptr);                   // same block recycled from free list
+	EXPECT_EQ(arena.used(), used_after_alloc); // arena bump not advanced
+}
+
+TEST(ArenaAllocatorTests, WorksWithStdList) {
+	MemoryArena<4096> arena;
+	ArenaAllocator<int, 4096> allocator(arena);
+	std::list<int, ArenaAllocator<int, 4096>> lst(allocator);
+
+	lst.push_back(1);
+	lst.push_back(2);
+	lst.push_back(3);
+
+	// Erase the middle element — its node is pushed onto the free list.
+	auto it = std::next(lst.begin());
+	lst.erase(it);
+	const std::size_t used_after_erase = arena.used();
+
+	// push_back must reuse the freed node; arena bump must not advance.
+	lst.push_back(4);
+
+	ASSERT_EQ(lst.size(), 3U);
+	EXPECT_EQ(arena.used(), used_after_erase);
+}
+
+TEST(ArenaAllocatorTests, ResetClearsFreeListAndArena) {
+	MemoryArena<128> arena;
+	ArenaAllocator<std::uintptr_t, 128> allocator(arena);
+
+	std::uintptr_t* p1 = allocator.allocate(1);
+	allocator.deallocate(p1, 1);  // p1 is now on the free list
+
+	allocator.reset();  // must clear both free list and arena offset
+
+	EXPECT_EQ(arena.used(), 0U);
+
+	// After reset the bump starts from 0; if free_list_head were not cleared,
+	// allocate(1) would pop the stale p1 while the bump could later hand out
+	// the same bytes again — two live pointers to the same storage.
+	std::uintptr_t* p2 = allocator.allocate(1);
+	std::uintptr_t* p3 = allocator.allocate(1);
+	EXPECT_NE(p2, p3);  // must be distinct; overlap would indicate stale free list
 }
 
 TEST(LogAllocatorTests, AllocateAndDeallocateRawStorage) {
