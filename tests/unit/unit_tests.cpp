@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <limits>
 #include <memory>
 #include <vector>
@@ -30,6 +31,51 @@ TEST(MemoryArenaTests, AllocateAdvancesOffsetAndReturnsContiguousMemory) {
 	EXPECT_EQ(second, first + 16);
 	EXPECT_EQ(arena.used(), 24U);
 	EXPECT_EQ(arena.available(), 40U);
+}
+
+TEST(MemoryArenaTests, AllocateZeroReturnsValidPtrAndDoesNotConsumeArena) {
+	MemoryArena<128> arena;
+
+	// Misalign offset by allocating 1 byte first, so the next arena position
+	// is not naturally aligned to std::max_align_t.
+	(void)arena.allocate(1);
+	const std::size_t used_before = arena.used();
+
+	std::byte* ptr = arena.allocate(0);
+
+	EXPECT_NE(ptr, nullptr);
+	EXPECT_EQ(arena.used(), used_before);  // offset must not change
+	EXPECT_EQ(reinterpret_cast<std::uintptr_t>(ptr) % alignof(std::max_align_t), 0U);
+}
+
+TEST(MemoryArenaTests, AllocateAccountsForAlignmentPaddingInUsedBytes) {
+	MemoryArena<128> arena;
+
+	std::byte* first = arena.allocate(1);
+	ASSERT_NE(first, nullptr);
+	const std::size_t used_after_first = arena.used();
+
+	std::byte* second = arena.allocate(1);
+	ASSERT_NE(second, nullptr);
+
+	const std::size_t consumed_by_second = arena.used() - used_after_first;
+	const std::size_t alignment_padding =
+				static_cast<std::size_t>(second - (first + 1));
+
+	EXPECT_EQ(consumed_by_second, alignment_padding + 1U);
+	EXPECT_EQ(reinterpret_cast<std::uintptr_t>(second) %
+							alignof(std::max_align_t),
+						0U);
+}
+
+TEST(MemoryArenaTests, AllocateThrowsWhenAlignmentLeavesInsufficientSpace) {
+	MemoryArena<17> arena;
+
+	(void)arena.allocate(1);
+	const std::size_t used_before_failed_allocation = arena.used();
+
+	EXPECT_THROW((void)arena.allocate(2), std::bad_alloc);
+	EXPECT_EQ(arena.used(), used_before_failed_allocation);
 }
 
 TEST(MemoryArenaTests, AllocateThrowsWhenCapacityExceeded) {
