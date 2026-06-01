@@ -50,8 +50,16 @@ class MemoryArena {
     throw std::bad_alloc();
   }
 
-  // TODO: implement deallocate, for now we can only reset the arena.
-  //! could be problem if data types not simple.
+  // Best-effort LIFO reclaim: if the freed block is the most-recently-allocated
+  // one, retreat the offset so the space can be reused by the next allocate().
+  // Non-LIFO frees are silently ignored; bulk reclaim remains available via
+  // reset().
+  void deallocate(std::byte* p, std::size_t bytes) noexcept {
+    if (bytes > 0 && p + bytes == buffer.data() + offset) {
+      offset = static_cast<std::size_t>(p - buffer.data());
+    }
+  }
+
   void reset() noexcept { offset = 0; }
 
   // Arenas are identified by address; value-based comparison is intentionally
