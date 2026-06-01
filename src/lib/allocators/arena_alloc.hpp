@@ -72,7 +72,6 @@ class ArenaAllocator {
       : arena(other.arena) {}
 
   [[nodiscard]] T* allocate(std::size_t n) {
-    if (n == 0) return nullptr;
     if (n > (std::numeric_limits<std::size_t>::max() / sizeof(T))) {
       throw std::bad_alloc();
     }

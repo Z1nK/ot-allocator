@@ -98,14 +98,15 @@ TEST(MemoryArenaTests, ResetClearsUsedBytes) {
 	EXPECT_EQ(arena.available(), 32U);
 }
 
-TEST(ArenaAllocatorTests, AllocateZeroReturnsNullAndDoesNotConsumeArena) {
+TEST(ArenaAllocatorTests, AllocateZeroReturnsAlignedPtrAndDoesNotConsumeArena) {
 	MemoryArena<64> arena;
 	ArenaAllocator<int, 64> allocator(arena);
 
 	int* ptr = allocator.allocate(0);
 
-	EXPECT_EQ(ptr, nullptr);
+	EXPECT_NE(ptr, nullptr);
 	EXPECT_EQ(arena.used(), 0U);
+	EXPECT_EQ(reinterpret_cast<std::uintptr_t>(ptr) % alignof(std::max_align_t), 0U);
 }
 
 TEST(ArenaAllocatorTests, AllocateConsumesExpectedBytes) {
