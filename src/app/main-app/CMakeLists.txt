@@ -6,6 +6,7 @@ target_link_libraries(otallocator PRIVATE
                         allocators::log-alloc
                         allocators::arena-alloc
                         allocators::heap-arena-alloc
+                        allocators::chunk-heap-arena-alloc
 )
 
 if (MSVC)
