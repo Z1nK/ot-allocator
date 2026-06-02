@@ -15,8 +15,8 @@ public:
       typename std::allocator_traits<Allocator>::template rebind_alloc<Node<T>>;
   using traits = std::allocator_traits<NodeAllocator>;
 
-//   SimpleList() : head_(nullptr), size_(0) {}
- explicit SimpleList(const Allocator &alloc = Allocator())
+  //   SimpleList() : head_(nullptr), size_(0) {}
+  explicit SimpleList(const Allocator &alloc = Allocator())
       : head_(nullptr), size_(0), allocator_(alloc) {}
 
   ~SimpleList() {

@@ -1,8 +1,6 @@
 #include <array>
 #include <iostream>
-
 #include <map>
-
 #include <vector>
 
 #include <allocators/arena_alloc.hpp>
@@ -21,7 +19,6 @@ int factorial(int n) {
 int main() {
 
   using MapAlloc = ArenaAllocator<std::pair<const int, int>, MAP_ARENA_SIZE>;
-  
 
   // 1. creating an instance of std::map<int, int> with standart allocator
   std::map<int, int> standart_map;
@@ -53,15 +50,14 @@ int main() {
   // 3. creating an instance of simple list with standart allocator (arena
   // allocator on heap)
   SimpleList<int> slst;
-  for(int i = 0; i <= 9; ++i) {
+  for (int i = 0; i <= 9; ++i) {
     slst.push_back(i);
   }
 
   for (int value : slst) {
     std::cout << value << "\n";
   }
-  
-  
+
   // 4. creating an instance of simple list with custom allocator (arena
   // allocator on heap)
   HeapMemoryArena heap_arena(1024);
