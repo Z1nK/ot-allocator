@@ -8,6 +8,7 @@
 #include <allocators/arena_alloc.hpp>
 #include <allocators/heap_arena_alloc.hpp>
 #include <allocators/log_alloc.hpp>
+#include <simple-list/simple_list.hpp>
 
 constexpr std::size_t MAP_ARENA_SIZE = 512;
 
@@ -48,5 +49,14 @@ int main() {
     std::cout << key << " " << value << "\n";
   }
 
+  // 3. creating an instance of simple list with standart allocator (arena
+  // allocator on heap)
+  SimpleList<int> slst;
+  for(int i = 0; i <= 9; ++i) {
+    slst.push_back(i);
+  }
+  
+  // 4. creating an instance of simple list with custom allocator (arena
+  // allocator on heap)
   return 0;
 }

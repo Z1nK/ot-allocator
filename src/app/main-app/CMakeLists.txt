@@ -7,6 +7,7 @@ target_link_libraries(otallocator PRIVATE
                         allocators::arena-alloc
                         allocators::heap-arena-alloc
                         allocators::chunk-heap-arena-alloc
+                        simple-list::simple-list
 )
 
 if (MSVC)

@@ -11,6 +11,7 @@ target_link_libraries(unit_tests PRIVATE
 	allocators::arena-alloc
 	allocators::heap-arena-alloc
 	allocators::log-alloc
+	simple-list::simple-list
 	# log-reader::log-reader
 )
 

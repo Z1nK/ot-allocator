@@ -12,6 +12,7 @@
 #include "allocators/arena_alloc.hpp"
 #include "allocators/heap_arena_alloc.hpp"
 #include "allocators/log_alloc.hpp"
+#include "simple-list/simple_list.hpp"
 
 namespace {
 
@@ -316,6 +317,72 @@ TEST(LogAllocatorTests, WorksWithStdVector) {
 	EXPECT_EQ(values[0], 1);
 	EXPECT_EQ(values[1], 2);
 	EXPECT_EQ(values[2], 3);
+}
+
+TEST(SimpleListTests, InitialStateIsEmpty) {
+	SimpleList<int> list;
+
+	EXPECT_EQ(list.size(), 0U);
+	EXPECT_TRUE(list.empty());
+}
+
+TEST(SimpleListTests, PushFrontIncreasesSize) {
+	SimpleList<int> list;
+
+	list.push_front(42);
+
+	EXPECT_EQ(list.size(), 1U);
+	EXPECT_FALSE(list.empty());
+}
+
+TEST(SimpleListTests, PushBackIncreasesSize) {
+	SimpleList<int> list;
+
+	list.push_back(7);
+
+	EXPECT_EQ(list.size(), 1U);
+	EXPECT_FALSE(list.empty());
+}
+
+TEST(SimpleListTests, MultiplePushesAccumulateSize) {
+	SimpleList<int> list;
+
+	list.push_front(1);
+	list.push_back(2);
+	list.push_front(3);
+
+	EXPECT_EQ(list.size(), 3U);
+	EXPECT_FALSE(list.empty());
+}
+
+TEST(SimpleListTests, PopFrontDecreasesSize) {
+	SimpleList<int> list;
+
+	list.push_front(1);
+	list.push_front(2);
+	list.pop_front();
+
+	EXPECT_EQ(list.size(), 1U);
+	EXPECT_FALSE(list.empty());
+}
+
+TEST(SimpleListTests, PopFrontOnSingleElementLeavesEmpty) {
+	SimpleList<int> list;
+
+	list.push_front(99);
+	list.pop_front();
+
+	EXPECT_EQ(list.size(), 0U);
+	EXPECT_TRUE(list.empty());
+}
+
+TEST(SimpleListTests, PopFrontOnEmptyListIsNoOp) {
+	SimpleList<int> list;
+
+	list.pop_front();  // must not crash or corrupt state
+
+	EXPECT_EQ(list.size(), 0U);
+	EXPECT_TRUE(list.empty());
 }
 
 }  // namespace
