@@ -105,7 +105,8 @@ class ArenaAllocator {
     // Alignment is already guaranteed: MemoryArena always aligns to
     // alignof(std::max_align_t), which is >= alignof(FreeNode) on all
     // platforms. (noo need for sizeof(T) % alignof(FreeNode). The only
-    // requirement is that the block is large enough to hold FreeNode::next.
+    // requirement is that the block is large enough to hold FreeNode::next. 
+    // (P.S could be problem if use it for std::vector)
     if constexpr (sizeof(T) >= sizeof(FreeNode)) {
       if (n == 1 && free_list_head != nullptr) {
         FreeNode* node = free_list_head;
