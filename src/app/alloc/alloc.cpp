@@ -9,6 +9,8 @@
 
 #include <allocators/log_alloc.hpp>
 #include <allocators/arena_alloc.hpp>
+#include <allocators/chunk_heap_arena_alloc.hpp>
+#include <allocators/heap_arena_alloc.hpp>
 
 int main() {
 
@@ -115,6 +117,43 @@ int main() {
     std::cout << v << " ";
   }
   std::cout << "\n";
+
+
+
+  // ------------------------------------------------
+
+  // Test ChunkHeapMemoryArena with std::map
+  std::cout << "\n=== Testing ChunkHeapArenaAllocator with std::map ===\n";
+  ChunkHeapMemoryArena chunk_arena(64);  // intentionally small to trigger chunk extension
+  ChunkHeapArenaAllocator<std::pair<const int, int>> chunk_alloc(chunk_arena);
+
+  std::map<int, int, std::less<int>,
+           ChunkHeapArenaAllocator<std::pair<const int, int>>> chunk_map(
+      std::less<int>(), chunk_alloc);
+
+  std::cout << "Initial capacity: " << chunk_arena.capacity() << " bytes\n";
+  std::cout << "Initial available: " << chunk_arena.available() << " bytes\n";
+
+  for (int i = 1; i <= 10; ++i) {
+    chunk_map[i] = i * 100;
+  }
+
+  std::cout << "After inserting 10 entries:\n";
+  std::cout << "  Total capacity: " << chunk_arena.capacity() << " bytes\n";
+  std::cout << "  Total used:     " << chunk_arena.used() << " bytes\n";
+  std::cout << "  Available:      " << chunk_arena.available() << " bytes\n";
+
+  std::cout << "Map contents:\n";
+  for (const auto& [key, value] : chunk_map) {
+    std::cout << "  [" << key << "] = " << value << "\n";
+  }
+
+  // Verify erase + lookup still work correctly after extension
+  chunk_map.erase(5);
+  std::cout << "After erasing key 5, find(5) "
+            << (chunk_map.find(5) == chunk_map.end() ? "not found (ok)" : "ERROR: still present")
+            << "\n";
+  std::cout << "find(6) = " << chunk_map.at(6) << "\n";
 
   return 0;
 }
