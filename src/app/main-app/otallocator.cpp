@@ -55,8 +55,14 @@ int main() {
   for(int i = 0; i <= 9; ++i) {
     slst.push_back(i);
   }
+
+  for (int value : slst) {
+    std::cout << value << "\n";
+  }
+  
   
   // 4. creating an instance of simple list with custom allocator (arena
   // allocator on heap)
+  
   return 0;
 }
