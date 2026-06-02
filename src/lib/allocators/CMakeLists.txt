@@ -30,3 +30,13 @@ target_include_directories(heap-arena-alloc INTERFACE
   )
 
 
+# ----------------------------------------------------------------------------
+  
+add_library(chunk-heap-arena-alloc INTERFACE)
+
+add_library(allocators::chunk-heap-arena-alloc ALIAS chunk-heap-arena-alloc)
+
+target_include_directories(chunk-heap-arena-alloc INTERFACE
+  $<INSTALL_INTERFACE:include>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/..>
+  )
