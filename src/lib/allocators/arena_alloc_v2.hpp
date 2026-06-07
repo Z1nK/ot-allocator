@@ -6,22 +6,21 @@
 #include <memory>
 #include <new>
 
-
 template <typename T, std::size_t N>
 struct Arena2Traits {
-  static constexpr std::size_t required_bytes = N * (sizeof(T) + alignof(std::max_align_t) - 1);
+  static constexpr std::size_t required_bytes =
+      N * (sizeof(T) + alignof(std::max_align_t) - 1);
 };
 
 template <typename T, std::size_t N>
-  requires (N > 0) && (sizeof(T) > 0)
-class MemoryArena2 {  
-
+  requires(N > 0) && (sizeof(T) > 0)
+class MemoryArena2 {
   static constexpr std::size_t total_bytes = Arena2Traits<T, N>::required_bytes;
 
   std::array<std::byte, total_bytes> buffer;
   std::size_t offset = 0;
 
-public:
+ public:
   MemoryArena2() = default;
   // Copying or moving MemoryArena would create a new buffer at a
   // different address, leaving every pointer previously returned by
@@ -30,7 +29,9 @@ public:
   MemoryArena2 &operator=(const MemoryArena2 &) = delete;
   MemoryArena2(MemoryArena2 &&) = delete;
   MemoryArena2 &operator=(MemoryArena2 &&) = delete;
-  [[nodiscard]] constexpr std::size_t capacity() const noexcept { return total_bytes; }
+  [[nodiscard]] constexpr std::size_t capacity() const noexcept {
+    return total_bytes;
+  }
 
   [[nodiscard]] constexpr std::size_t used() const noexcept { return offset; }
 
@@ -75,7 +76,8 @@ public:
 };
 
 // Allocator itself
-template <typename T, typename TargetType, std::size_t N> class ArenaAllocator2 {
+template <typename T, typename TargetType, std::size_t N>
+class ArenaAllocator2 {
   MemoryArena2<TargetType, N> *arena;
 
   // Intrusive free list: freed blocks of exactly sizeof(T) bytes store a
@@ -86,9 +88,10 @@ template <typename T, typename TargetType, std::size_t N> class ArenaAllocator2 
 
   FreeNode *free_list_head = nullptr;
 
-  template <typename U, typename TargetU, std::size_t UN> friend class ArenaAllocator2;
+  template <typename U, typename TargetU, std::size_t UN>
+  friend class ArenaAllocator2;
 
-public:
+ public:
   using value_type = T;
   using size_type = std::size_t;
   using difference_type = std::ptrdiff_t;
@@ -116,7 +119,7 @@ public:
         FreeNode *node = free_list_head;
         free_list_head = node->next;
         std::destroy_at(
-            node); // end FreeNode lifetime; storage is now available for T
+            node);  // end FreeNode lifetime; storage is now available for T
         return reinterpret_cast<T *>(node);
       }
     }
@@ -148,12 +151,14 @@ public:
     arena->reset();
   }
 
-  template <typename U> struct rebind {
+  template <typename U>
+  struct rebind {
     using other = ArenaAllocator2<U, TargetType, N>;
   };
 
   template <typename U>
-  bool operator==(const ArenaAllocator2<U, TargetType, N> &other) const noexcept {
+  bool operator==(
+      const ArenaAllocator2<U, TargetType, N> &other) const noexcept {
     return arena == other.arena;
   }
 
