@@ -6,6 +6,13 @@
 #include <memory>
 #include <new>
 
+
+template <typename T, std::size_t N>
+  requires (N > 0) && (sizeof(T) > 0)
+struct ArenaTraits {
+  static constexpr std::size_t required_bytes = N * (sizeof(T) + alignof(std::max_align_t) - 1);
+};
+
 template <std::size_t N>
 concept MinimalArenaSize = N > 0;
 
