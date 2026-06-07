@@ -40,3 +40,14 @@ target_include_directories(chunk-heap-arena-alloc INTERFACE
   $<INSTALL_INTERFACE:include>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/..>
   )
+
+# ----------------------------------------------------------------------------
+
+add_library(arena-alloc_v2 INTERFACE)
+
+add_library(allocators::arena-alloc_v2 ALIAS arena-alloc_v2)
+
+target_include_directories(arena-alloc_v2 INTERFACE
+  $<INSTALL_INTERFACE:include>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/..>
+  )

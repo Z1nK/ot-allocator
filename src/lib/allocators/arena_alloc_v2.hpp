@@ -7,34 +7,39 @@
 #include <new>
 
 
-template <std::size_t N>
-concept MinimalArenaSize = N > 0;
+template <typename T, std::size_t N>
+struct Arena2Traits {
+  static constexpr std::size_t required_bytes = N * (sizeof(T) + alignof(std::max_align_t) - 1);
+};
 
-template <std::size_t N>
-  requires MinimalArenaSize<N>
-class MemoryArena {
-  std::array<std::byte, N> buffer;
+template <typename T, std::size_t N>
+  requires (N > 0) && (sizeof(T) > 0)
+class MemoryArena2 {  
+
+  static constexpr std::size_t total_bytes = Arena2Traits<T, N>::required_bytes;
+
+  std::array<std::byte, total_bytes> buffer;
   std::size_t offset = 0;
 
 public:
-  MemoryArena() = default;
+  MemoryArena2() = default;
   // Copying or moving MemoryArena would create a new buffer at a
   // different address, leaving every pointer previously returned by
   // allocate() dangling. Both operations are therefore deleted.
-  MemoryArena(const MemoryArena &) = delete;
-  MemoryArena &operator=(const MemoryArena &) = delete;
-  MemoryArena(MemoryArena &&) = delete;
-  MemoryArena &operator=(MemoryArena &&) = delete;
-  [[nodiscard]] constexpr std::size_t capacity() const noexcept { return N; }
+  MemoryArena2(const MemoryArena2 &) = delete;
+  MemoryArena2 &operator=(const MemoryArena2 &) = delete;
+  MemoryArena2(MemoryArena2 &&) = delete;
+  MemoryArena2 &operator=(MemoryArena2 &&) = delete;
+  [[nodiscard]] constexpr std::size_t capacity() const noexcept { return total_bytes; }
 
   [[nodiscard]] constexpr std::size_t used() const noexcept { return offset; }
 
   [[nodiscard]] constexpr std::size_t available() const noexcept {
-    return N - offset;
+    return total_bytes - offset;
   }
 
   std::byte *allocate(std::size_t bytes) {
-    std::size_t space = N - offset;
+    std::size_t space = total_bytes - offset;
     void *ptr = buffer.data() + offset;
 
     // std::align adjusts ptr to the next aligned address within space and
@@ -44,7 +49,7 @@ public:
     const std::size_t alloc_size = (bytes == 0) ? 1 : bytes;
     if (std::align(alignof(std::max_align_t), alloc_size, ptr, space)) {
       if (bytes > 0) {
-        offset = N - space + bytes;
+        offset = total_bytes - space + bytes;
       }
       return static_cast<std::byte *>(ptr);
     }
@@ -65,13 +70,13 @@ public:
 
   // Arenas are identified by address; value-based comparison is intentionally
   // disabled to prevent comparing uninitialized buffer bytes (UB).
-  bool operator==(const MemoryArena &) const = delete;
-  auto operator<=>(const MemoryArena &) const = delete;
+  bool operator==(const MemoryArena2 &) const = delete;
+  auto operator<=>(const MemoryArena2 &) const = delete;
 };
 
 // Allocator itself
-template <typename T, std::size_t N> class ArenaAllocator {
-  MemoryArena<N> *arena;
+template <typename T, typename TargetType, std::size_t N> class ArenaAllocator2 {
+  MemoryArena2<TargetType, N> *arena;
 
   // Intrusive free list: freed blocks of exactly sizeof(T) bytes store a
   // next-pointer inside their own memory, so there is zero metadata overhead.
@@ -81,7 +86,7 @@ template <typename T, std::size_t N> class ArenaAllocator {
 
   FreeNode *free_list_head = nullptr;
 
-  template <typename U, std::size_t M> friend class ArenaAllocator;
+  template <typename U, typename TargetU, std::size_t UN> friend class ArenaAllocator2;
 
 public:
   using value_type = T;
@@ -89,11 +94,11 @@ public:
   using difference_type = std::ptrdiff_t;
   using is_always_equal = std::false_type;
 
-  explicit ArenaAllocator(MemoryArena<N> &arena_ref) noexcept
+  explicit ArenaAllocator2(MemoryArena2<TargetType, N> &arena_ref) noexcept
       : arena(std::addressof(arena_ref)) {}
 
-  template <typename U>
-  ArenaAllocator(const ArenaAllocator<U, N> &other) noexcept
+  template <typename U, typename TargetU>
+  ArenaAllocator2(const ArenaAllocator2<U, TargetU, N> &other) noexcept
       : arena(other.arena) {}
 
   [[nodiscard]] T *allocate(std::size_t n) {
@@ -144,11 +149,11 @@ public:
   }
 
   template <typename U> struct rebind {
-    using other = ArenaAllocator<U, N>;
+    using other = ArenaAllocator2<U, TargetType, N>;
   };
 
   template <typename U>
-  bool operator==(const ArenaAllocator<U, N> &other) const noexcept {
+  bool operator==(const ArenaAllocator2<U, TargetType, N> &other) const noexcept {
     return arena == other.arena;
   }
 
