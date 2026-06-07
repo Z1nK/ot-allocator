@@ -1,6 +1,7 @@
 #include <allocators/arena_alloc_v2.hpp>
 #include <iostream>
 #include <map>
+#include <simple-list/simple_list.hpp>
 #include <vector>
 
 struct FakeMapNode {
@@ -18,9 +19,10 @@ int main() {
   MemoryArena2<int, 64> int_arena;
   ArenaAllocator2<int, int, 64> int_alloc(int_arena);
   std::vector<int, ArenaAllocator2<int, int, 64>> vec(int_alloc);
+  vec.reserve(64);
 
-  for (int i = 1; i <= 10; ++i) {
-    vec.push_back(i * i);
+  for (int i = 0; i < 64; ++i) {
+    vec.push_back(i);
   }
 
   std::cout << "vector size: " << vec.size() << "\n";
@@ -44,6 +46,26 @@ int main() {
             << ints[2] << "\n";
   std::cout << "raw arena used/available: " << raw_arena.used() << "/"
             << raw_arena.available() << " bytes\n";
+
+  // SimpleList uses allocator rebinding to allocate Node<int> objects.
+  MemoryArena2<Node<int>, 64> list_arena;
+  ArenaAllocator2<int, Node<int>, 64> list_alloc(list_arena);
+  SimpleList<int, ArenaAllocator2<int, Node<int>, 64>> slist(list_alloc);
+
+    std::cout << "\nsimple list arena used/available: " << list_arena.used()
+            << "/" << list_arena.available() << " bytes\n";
+
+  for (int i = 0; i < 64; ++i) {
+    slist.push_back(i);
+  }
+
+  std::cout << "simple list values: ";
+  for (int value : slist) {
+    std::cout << value << " ";
+  }
+  std::cout << "\n";
+  std::cout << "simple list arena used/available: " << list_arena.used()
+            << "/" << list_arena.available() << " bytes\n";
 
   // std::map usage with ArenaAllocator2
 

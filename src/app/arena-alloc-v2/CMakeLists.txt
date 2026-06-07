@@ -4,6 +4,7 @@ target_compile_features(arena2 PUBLIC cxx_std_20)
 
 target_link_libraries(arena2 PRIVATE
                         allocators::arena-alloc_v2
+                        simple-list::simple-list
                         
 )
 
